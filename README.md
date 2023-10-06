@@ -1,4 +1,7 @@
 # NEAT_RL
+
+Codebase for the [paper](https://arxiv.org/pdf/2304.07425.pdf): Efficient Quality-Diversity Optimization through Diverse Quality Species
+
 ## Setup
 To install this package run:
 ```shell
@@ -44,3 +47,49 @@ All environments:
 * QDWalker2DBulletEnv-v0
 * QDHalfCheetahBulletEnv-v0
 * QDAntBulletEnv-v0
+
+----
+
+## Hyperpameters used 
+<p align="center">
+
+| Hyperparameter                               | Value       |
+|----------------------------------------------|-------------|
+| Population Size                              | 64          |
+| Number of Species ($m$)                      | 8           |
+| Diversity Reward Scale ($\lambda$)           | 0.05        |
+| Species Elites Value ($K$)                   | 4           |
+| Policy Update Steps (n_grad)                 | 64          |
+| Critic Update Frequency (critic_update_freq)     | 8           |
+| Policy Hidden Size                           | 128         |
+| Species Actor Hidden Size                    | 256         |
+| Species Critic Hidden Size                   | 256         |
+| Discriminator Hidden Size                    | 256         |
+| Species Actor/Critic and Discriminator Learning Rate | 0.003 |
+| Policy Learning Rate                         | 0.006       |
+| Number of Evaluations (num_eval)             | $10^{5}$    |
+| Batch Size ($N$)                             | 256         |
+| Discount Factor ($\gamma$)                   | 0.99        |
+| Species Target Update Rate ($\tau$)          | 0.005       |
+| TD3 Exploration Noise                        | 0.2         |
+| TD3 Smoothing Variance ($\sigma$)            | 0.2         |
+| TD3 Noise Clip ($c$)                         | 0.5         |
+| TD3 Target Update Freq. ($d$)                | 2           |
+| Replay Buffer Size                           | $2^{19}$    |
+
+**Table 1:** Hyperparameter values for the DQS algorithm.
+
+</p>
+
+-------
+## Cite
+
+```
+@article{wickman2023efficient,
+  title={Efficient Quality-Diversity Optimization through Diverse Quality Species},
+  author={Wickman, Ryan and Poudel, Bibek and Villarreal, Michael and Zhang, Xiaofei and Li, Weizi},
+  journal={arXiv preprint arXiv:2304.07425},
+  year={2023},
+  url={https://arxiv.org/pdf/2304.07425.pdf}
+}
+```

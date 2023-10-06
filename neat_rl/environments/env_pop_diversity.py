@@ -36,10 +36,8 @@ class EnvironmentGADiversity:
         self.args.policy_noise = self.args.policy_noise * max_action
         self.args.noise_clip = self.args.noise_clip * max_action
 
-
         self.td3ga = SpeciesTD3GA(self.args, state_dim, action_dim, max_action, len(self.env.desc))
         base_actor = Actor(state_dim, action_dim, self.args.hidden_size, self.args.n_hidden, max_action)
-
 
         # Total number of timesteps
         self.total_timesteps = 0
@@ -98,9 +96,7 @@ class EnvironmentGADiversity:
             print("total_reward", self.env.tot_reward, "total_diversity_bonus", total_diversity_bonus)
 
         return self.env.tot_reward, behavior, total_diversity_bonus
-    
 
-                
     def train(self):
         start_time = time.time()
         max_fitness = None

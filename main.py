@@ -37,18 +37,13 @@ def main(args):
                     env.population.evolve()
                 save_population(env.population, args.save_dir)
                 env.td3ga.save()
-                    
                 print(f"BEST REWARD IS {max_fitness} AVG FITNESS IS {avg_fitness} FOR EPISODE {i} EVALS {env.total_eval}")
-                   
-
         else:
-     
             kdt = load_kdtree(args.env)
-            
-            
             train_json_file = os.path.join(args.save_dir, f"train_dict_{args.env}.json")
             archive_file = os.path.join(args.save_dir, f"archive_{args.env}.json")
             args_file = os.path.join(args.save_dir, "args.json")
+
             if args.load and not args.render:
                 if not os.path.exists(archive_file):
                     archive_file = os.path.join(args.save_dir, "archive.json") 
@@ -72,16 +67,10 @@ def main(args):
                 archive = {}
                 archive_species_ids = {}
 
-            # if args.use_td3_diversity:
             env = EnvironmentGADiversity(args, archive, archive_species_ids, kdt)
-            # else:
-            #     env = EnvironmentGADiversitySAC(args, archive, kdt)
-
             env.total_eval = train_dict["total_evals"]
 
             i = 0
-
-            
             if not args.render:
                 # Create the save directory if it doesn't exist
                 if not os.path.exists(args.save_dir):                        
@@ -95,19 +84,13 @@ def main(args):
                 # Save the args
                 with open(args_file, 'w') as f:
                     json.dump(args.__dict__, f, indent=2)
-                
-
 
             while env.total_eval < args.max_org_evals:        
                 i += 1
-                
                 if not args.render:
 
                     # Run all the organisms
-                  
                     max_fitness, avg_fitness, fitness_range, total_fitness = env.train()
-                  
-
 
                     if len(archive) > 0:
                         total_fitness_archive = sum(list(archive.values()))
@@ -159,16 +142,6 @@ def main(args):
                     max_fitness, avg_fitness, fitness_range, total_fitness = env.train()
                     
                 print(f"BEST REWARD IS {max_fitness} AVG FITNESS IS {avg_fitness} FOR EPISODE {i} EVALS {env.total_eval}")
-                   
-            # else:    
-            #     env = EnvironmentGADiversitySAC(args)
-            #     for i in range(args.num_episodes):            
-            #         max_fitness = env.train()
-            #         if not args.render:
-            #             env.sac.save()
-            #             save_population(env.population, args.save_file)
-
-                    # print(f"BEST REWARD IS {max_fitness} FOR EPISODE {i}")
                 
 
 if __name__ == "__main__":
