@@ -42,7 +42,6 @@ def update_parser(parser):
     parser.add_argument("--update_freq", type=int, default=8,
         help="How often to update the policy and critic.")
 
-
     parser.add_argument("--learning_starts", type=int, default=1000,
         help="Number of timesteps to elapse before training.")
 
@@ -50,16 +49,8 @@ def update_parser(parser):
     parser.add_argument("--save_dir", default="models/",
         help="Directory to save the modelsa and results.")
 
-    # parser.add_argument("--env", default="InvertedPendulum-v4",
-    #     help="Environment to run (e.g., InvertedPendulum-v4, Pendulum-v1).")
-    # parser.add_argument("--max_timesteps", type=int, default=50000,
-    #     help="Hidden size of network.")
-
-
     parser.add_argument("--org_lr", type=float, default=6e-4,
         help="Learning rate for an organism using policy updates.")
-    parser.add_argument("--max_age", type=int, default=100000000,
-        help="Maximum age of organism.")
     parser.add_argument("--n_org_updates", type=int, default=64,
         help="Number of updates to perform for an organism.")
     parser.add_argument("--pg_rate", type=float, default=1.0,
@@ -84,20 +75,16 @@ def update_parser(parser):
         help="Use action discriminator.") 
     parser.add_argument("--no_train_diversity", action="store_true",
         help="Don't train the critic with diversity bonus, only for selecting organsims in a species.")        
-
     parser.add_argument("--no_use_disc", action="store_true",
         help="Don't use the discriminator to increase diversity.")
     parser.add_argument("--sac_alpha", type=float, default=0.2,
         help="Alpha used for entropy in SAC.")
-
     parser.add_argument("--iso_sigma", type=float, default=0.005,
         help="ISO sigma for random noise.")
     parser.add_argument("--line_sigma", type=float, default=0.05,
         help="Line sigma for interpolation noise.")
     parser.add_argument("--skew_val", type=float, default=-1.0,
         help="Value used for skewing behavior distribution.")
-
-
     parser.add_argument("--num_species", type=int, default=8,
         help="Number of species to create.")
     parser.add_argument("--pop_size", type=int, default=64,
@@ -106,12 +93,6 @@ def update_parser(parser):
         help="Total number of organism evaluations to run.")
     parser.add_argument("--survival_rate", type=float, default=0.5, 
         help="Percentage of organisms that will survive.")
-    parser.add_argument("--diversity_bonus_sort", action="store_true",
-        help="Sort by organisms by diversity bonus reward.")
-    parser.add_argument("--best_diversity_sort", action="store_true",
-        help="Sort by organisms by best fitness score.")
-    parser.add_argument("--random_sort", action="store_true",
-        help="Sort organisms randomly.")
     parser.add_argument("--only_pg", action="store_true",
         help="Only perform PG updates.")
     parser.add_argument("--resample_species", action="store_true",
