@@ -3,11 +3,15 @@ import random
 from neat_rl.neat.organism import Organism
 from neat_rl.neat.species import Species
 from neat_rl.neat.reproduction import GradientReproduction
+from neat_rl.neat.stagnation import Stagnation
+from torch.optim import Adam
+import copy
 
 class GradientPopulation:
     def __init__(self, args, td3ga):
         self.args = args
         self.breeder = GradientReproduction(args)
+        self.stagnation = Stagnation(self.args)
         self.td3ga = td3ga
         self.org_id_to_species = {}
         self.species_list = []
@@ -33,6 +37,7 @@ class GradientPopulation:
     def _create_species(self):
         species = Species(self.args, len(self.species_list))
         self.species_list.append(species)
+        self.stagnation.add_species(species)
         return species
 
     def speciate(self):
@@ -61,7 +66,10 @@ class GradientPopulation:
             parent_1 = random.choice(cur_species.orgs)
             parent_2 = parent_1
             child_net = parent_1.net.copy(transfer_weights=True)
-            self.td3ga.pg_update(child_net, cur_species.species_id)
+            child_optimizer = Adam(child_net.parameters(), lr=self.args.org_lr)
+            child_optimizer.load_state_dict(copy.deepcopy(parent_1.optimizer.state_dict()))
+
+            self.td3ga.pg_update(child_net, child_optimizer, cur_species.species_id)
         else:
             if len(cur_species.orgs) > 1:
                 parent_1, parent_2 = random.sample(cur_species.orgs, 2)
@@ -72,8 +80,10 @@ class GradientPopulation:
             child_net = self.breeder.reproduce(
                 parent_1.net, parent_2.net)
 
+        # Create the new organism
         new_org = Organism(
             self.args, child_net, gen=max(parent_1.generation, parent_2.generation) + 1, id=self.cur_id)
+        new_org.optimizer = child_optimizer
 
         # Increment the current organism ID
         self.cur_id += 1
@@ -104,19 +114,25 @@ class GradientPopulation:
 
         # Create next iteration of organisms
         for cur_species in self.species_list:
-            cur_species.update_age()
-            num_spawn = self.prune_species(cur_species)
+            cur_species.update()
 
-            for org in cur_species.orgs:
-                org.age += 1
-            
-            # Save new orgs in list to prevent breeding with new_org
-            new_orgs = []
-            for _ in range(num_spawn):
-                new_org = self.breed(cur_species)
-                new_orgs.append(new_org)
-            
-            cur_species.orgs.extend(new_orgs)
+            if self.stagnation.update(cur_species):
+                # Indicates this species has stananted, so resetting the species
+                cur_species.orgs = self.spawn(self.base_org, len(cur_species.orgs))
+                cur_species.age = 0
+                self.stagnation.reset(cur_species)
+            else:
+                num_spawn = self.prune_species(cur_species)
+
+                for org in cur_species.orgs:
+                    org.age += 1
+                
+                # Save new orgs in list to prevent breeding with new_org
+                new_orgs = []
+                for _ in range(num_spawn):
+                    new_orgs.append(self.breed(cur_species))
+                
+                cur_species.orgs.extend(new_orgs)
 
             # Add species' organsims to list of all organisms
             self.orgs.extend(cur_species.orgs)

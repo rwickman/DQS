@@ -84,15 +84,10 @@ class EnvironmentGADiversityOrg:
 
                     
             if not evaluate:
-                if self.args.use_state_disc:
+                if not self.args.use_behavior_disc:
                     # inp = torch.cat(
                     #     (torch.FloatTensor(state), torch.FloatTensor(action))).to(self.td3ga.device)
                     total_diversity_bonus += self.td3ga.discriminator(torch.FloatTensor(state).to(self.td3ga.device)).softmax(dim=-1)[species_id].item()
-                elif self.args.use_state_only_disc:
-                    total_diversity_bonus += self.td3ga.discriminator(torch.FloatTensor(state).to(self.td3ga.device)).softmax(dim=-1)[species_id].item()
-
-                elif self.args.use_action_disc:
-                    total_diversity_bonus += self.td3ga.discriminator(torch.FloatTensor(action).to(self.td3ga.device)).softmax(dim=-1)[species_id].item()
                 else:
                     disc_logits = self.td3ga.discriminator(torch.FloatTensor(behavior).to(self.td3ga.device))
                     diversity_bonus = disc_logits[species_id].item()

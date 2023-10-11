@@ -43,56 +43,57 @@ class TD3:
         return action
     
     def train(self):
-        self.total_iter += 1
+        for _ in range(self.args.replay_ratio):
+            self.total_iter += 1
 
-        state, action, next_state, reward, terminated = self.replay_buffer.sample(self.args.batch_size)
+            state, action, next_state, reward, terminated = self.replay_buffer.sample(self.args.batch_size)
 
-        with torch.no_grad():
-            # Select action according to policy and add clipped noise
-            noise = (
-                torch.randn_like(action) * self.args.policy_noise
-            ).clamp(-self.args.noise_clip, self.args.noise_clip)
+            with torch.no_grad():
+                # Select action according to policy and add clipped noise
+                noise = (
+                    torch.randn_like(action) * self.args.policy_noise
+                ).clamp(-self.args.noise_clip, self.args.noise_clip)
 
-            next_action = (
-                self.actor_target(next_state) + noise
-            ).clamp(-self.max_action, self.max_action)
+                next_action = (
+                    self.actor_target(next_state) + noise
+                ).clamp(-self.max_action, self.max_action)
+                
+                # Compute the target Q value
+                target_Q1, target_Q2 = self.critic_target(next_state, next_action)
+                target_Q = torch.min(target_Q1, target_Q2)
+                target_Q = reward + terminated * self.args.gamma * target_Q    
             
-            # Compute the target Q value
-            target_Q1, target_Q2 = self.critic_target(next_state, next_action)
-            target_Q = torch.min(target_Q1, target_Q2)
-            target_Q = reward + terminated * self.args.gamma * target_Q    
-           
-        # Get current Q estimates
-        current_Q1, current_Q2 = self.critic(state, action)
-        
-        # Compute critic loss
-        critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
-
-        # Optimize the critic
-        self.critic_optimizer.zero_grad()
-        critic_loss.backward()
-        nn.utils.clip_grad_norm_(self.critic.parameters(), 2.0)
-        self.critic_optimizer.step()
-
-        if self.total_iter % 2048 == 0:
-            print("target_Q", target_Q[:10].view(-1), current_Q1[:10].view(-1))
+            # Get current Q estimates
+            current_Q1, current_Q2 = self.critic(state, action)
             
-        # Delayed policy updates
-        if self.total_iter % self.args.policy_freq == 0:
-            actor_loss = -self.critic.Q1(state, self.actor(state)).mean()
+            # Compute critic loss
+            critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
 
-            # Optimize the actor 
-            self.actor_optimizer.zero_grad()
-            actor_loss.backward()
-            nn.utils.clip_grad_norm_(self.actor.parameters(), 2.0)
-            self.actor_optimizer.step()
+            # Optimize the critic
+            self.critic_optimizer.zero_grad()
+            critic_loss.backward()
+            nn.utils.clip_grad_norm_(self.critic.parameters(), 2.0)
+            self.critic_optimizer.step()
 
-			# Update the frozen target models
-            for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
-                target_param.data.copy_(self.args.tau * param.data + (1 - self.args.tau) * target_param.data)
+            if self.total_iter % 2048 == 0:
+                print("target_Q", target_Q[:10].view(-1), current_Q1[:10].view(-1))
+                
+            # Delayed policy updates
+            if self.total_iter % self.args.policy_freq == 0:
+                actor_loss = -self.critic.Q1(state, self.actor(state)).mean()
 
-            for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
-                target_param.data.copy_(self.args.tau * param.data + (1 - self.args.tau) * target_param.data)
+                # Optimize the actor 
+                self.actor_optimizer.zero_grad()
+                actor_loss.backward()
+                nn.utils.clip_grad_norm_(self.actor.parameters(), 2.0)
+                self.actor_optimizer.step()
+
+                # Update the frozen target models
+                for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
+                    target_param.data.copy_(self.args.tau * param.data + (1 - self.args.tau) * target_param.data)
+
+                for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
+                    target_param.data.copy_(self.args.tau * param.data + (1 - self.args.tau) * target_param.data)
 
 
     def save(self):

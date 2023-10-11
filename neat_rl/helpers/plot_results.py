@@ -58,6 +58,9 @@ def print_stats(save_dir, env):
     
     for k, v in species_to_org_dict.items():
         print(f"SPECIES {k}")
+        if "stagnation" in pop_dict:
+            print(pop_dict["stagnation"][str(k)])
+        print(list(filter(lambda s: s["id"] == k, pop_dict["species_list"]))[0])
         for org_dict in v:
             print("AGE", org_dict["age"], "fitness", org_dict["avg_fitness"])
         

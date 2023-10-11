@@ -12,7 +12,6 @@ class SpeciesReplayBuffer:
 
 		self.state = np.zeros((max_size, state_dim))
 		self.action = np.zeros((max_size, action_dim))
-		self.action_org = np.zeros((max_size, action_dim))
 		self.next_state = np.zeros((max_size, state_dim))
 		self.reward = np.zeros((max_size, 1))
 		self.species_id = np.zeros((max_size, 1))
@@ -25,7 +24,6 @@ class SpeciesReplayBuffer:
 	def add(self, state, action, action_org, next_state, reward, species_id, behavior, done):
 		self.state[self.ptr] = state
 		self.action[self.ptr] = action
-		self.action_org[self.ptr] = action_org
 		self.next_state[self.ptr] = next_state
 		self.reward[self.ptr] = reward
 		self.species_id[self.ptr] = species_id
@@ -42,7 +40,6 @@ class SpeciesReplayBuffer:
 		return (
 			torch.FloatTensor(self.state[ind]).to(self.device),
 			torch.FloatTensor(self.action[ind]).to(self.device),
-			torch.FloatTensor(self.action_org[ind]).to(self.device),
 			torch.FloatTensor(self.next_state[ind]).to(self.device),
 			torch.FloatTensor(self.reward[ind]).to(self.device),
 			torch.LongTensor(self.species_id[ind]).to(self.device).view(-1),
@@ -67,6 +64,7 @@ class SpeciesReplayBuffer:
 			"next_state": self.next_state,
 			"reward": self.reward,
 			"species_id": self.species_id,
+			"behavior": self.behavior,
 			"not_done": self.not_done,
 			"ptr": self.ptr,
 			"size": self.size
@@ -75,14 +73,17 @@ class SpeciesReplayBuffer:
 		np.savez(out_file, **d)
 
 	def load(self, save_dir):
+		
 		out_file = os.path.join(save_dir, "replay_buffer.npz")
-		data = np.load(out_file)
-
-		self.state = data["state"]
-		self.action = data["action"]
-		self.next_state = data["next_state"]
-		self.species_id = data["species_id"]
-		self.not_done = data["not_done"]
-		self.ptr = int(data["ptr"])
-		self.size = int(data["size"])
+		if os.path.exists(out_file):
+			data = np.load(out_file)
+			self.state = data["state"]
+			self.action = data["action"]
+			self.reward = data["reward"]
+			self.behavior = data["behavior"]
+			self.next_state = data["next_state"]
+			self.species_id = data["species_id"]
+			self.not_done = data["not_done"]
+			self.ptr = int(data["ptr"])
+			self.size = int(data["size"])
 

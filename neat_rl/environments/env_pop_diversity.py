@@ -74,8 +74,10 @@ class EnvironmentGADiversity:
             behavior = self.env.desc
 
             if self.args.render:
-                total_diversity_bonus += self.td3ga.get_diversity(state, species_id)
-
+                if self.args.use_behavior_disc:
+                    total_diversity_bonus += self.td3ga.get_diversity(behavior, species_id)
+                else:
+                    total_diversity_bonus += self.td3ga.get_diversity(state, species_id)
             if not evaluate and not self.args.render:
                 self.td3ga.replay_buffer.add(state, action, action_org, next_state, reward, species_id, behavior, done)
 
@@ -87,8 +89,8 @@ class EnvironmentGADiversity:
                 self.total_timesteps += 1
             cur_step += 1
         
-            # if self.args.render:
-            #     time.sleep(0.005)
+            if self.args.render:
+                time.sleep(0.005)
         
 
         if self.args.render:

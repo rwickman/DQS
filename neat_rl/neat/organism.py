@@ -1,3 +1,5 @@
+from torch.optim import Adam
+
 
 class Organism:
     def __init__(self, args, net, gen=0, id=0):
@@ -13,14 +15,11 @@ class Organism:
         self.behavior = None
         self.bonus_avg = 0
         self.bonus_best = 0
+        self.optimizer = Adam(net.parameters(), lr=self.args.org_lr)
 
     def copy(self, org_id=0):
         copy_net = self.net.copy(transfer_weights=False)
         copy_org = Organism(self.args, copy_net, self.generation, org_id)
-        copy_org.fitness = self.fitness
-        copy_org.best_fitness = self.best_fitness
-        copy_org._fitness_avg = self._fitness_avg
-        copy_org._num_updates = self._num_updates
         copy_org.age = self.age
         copy_org.generation = self.generation
         return copy_org
