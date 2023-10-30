@@ -6,14 +6,11 @@ from tqdm import tqdm
 import time
 import math
 
-from torch.nn.functional import log_softmax
 from neat_rl.helpers.util import add_to_archive
 from neat_rl.rl.species_td3ga import SpeciesTD3GA
 from neat_rl.neat.population import GradientPopulation
 from neat_rl.helpers.saving import save_population, load_population
 from neat_rl.networks.actor import Actor
-from neat_rl.networks.sac.sac_models import GaussianPolicy
-from neat_rl.rl.species_sac import SpeciesSAC
 
 class EnvironmentGADiversity:
     def __init__(self, args, archive, archive_species_ids, kdt):
@@ -79,7 +76,7 @@ class EnvironmentGADiversity:
                 else:
                     total_diversity_bonus += self.td3ga.get_diversity(state, species_id)
             if not evaluate and not self.args.render:
-                self.td3ga.replay_buffer.add(state, action, action_org, next_state, reward, species_id, behavior, done)
+                self.td3ga.replay_buffer.add(state, action, next_state, reward, species_id, behavior, done)
 
             if not evaluate and not self.args.render and self.total_timesteps % self.args.update_freq == 0 and self.td3ga.replay_buffer.size >= self.args.learning_starts:
                 self.td3ga.train()

@@ -1,5 +1,6 @@
 from torch.optim import Adam
-
+from torch.optim.lr_scheduler import MultiplicativeLR
+import random
 
 class Organism:
     def __init__(self, args, net, gen=0, id=0):
@@ -15,7 +16,11 @@ class Organism:
         self.behavior = None
         self.bonus_avg = 0
         self.bonus_best = 0
-        self.optimizer = Adam(net.parameters(), lr=self.args.org_lr)
+        self.optimizer = Adam(
+            net.parameters(),
+            lr=self.args.org_lr)
+        self.lr_scheduler = MultiplicativeLR(self.optimizer, lr_lambda=lambda e: 0.9)
+        self.parents = []
 
     def copy(self, org_id=0):
         copy_net = self.net.copy(transfer_weights=False)
@@ -33,11 +38,12 @@ class Organism:
         self.best_fitness = max(fitness, self.best_fitness)
         self.fitness = fitness
         if diversity_bonus:
-            cur_reward = self._fitness_avg + self.args.disc_lam * diversity_bonus
+            self.bonus_avg += (diversity_bonus - self.bonus_avg) / self._num_updates
+            self.bonus_best = max(self.bonus_best, diversity_bonus)
 
-            self.bonus_avg = cur_reward
-         
-            self.bonus_best = max(self.bonus_best, cur_reward)
+    def add_parent(self, parent_id):
+        """Add the parent the spawned this organism."""
+        self.parents.append(parent_id)
 
     @property
     def avg_fitness(self):
@@ -45,3 +51,18 @@ class Organism:
 
     def __call__(self, x):
         return self.net(x)
+    
+    def snapshot(self):
+        """Get a snapshot of the metrics of this organisms."""
+        return {
+            "id": self.id,
+            "age": self.age,
+            "avg_fitness": self.avg_fitness,
+            "generation": self.generation,
+            "best_fitness": self.best_fitness,
+            "num_updates": self._num_updates,
+            "behavior": list(self.behavior) if self.behavior is not None else None,
+            "bonus_avg": self.bonus_avg,
+            "bonus_best": self.bonus_best,
+            "parents": self.parents.copy(),
+        }

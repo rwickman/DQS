@@ -6,22 +6,13 @@ from neat_rl.neat.organism import Organism
 from neat_rl.neat.stagnation import SpeciesMetrics
 
 def create_org_dict(org, prefix_dir):
-    org_dict = {
-        "id": org.id,
-        "age": org.age,
-        "avg_fitness": org.avg_fitness,
-        "generation": org.generation,
-        "best_fitness": org.best_fitness,
-        "num_updates": org._num_updates,
-        "behavior": list(org.behavior) if org.behavior is not None else None,
-        "bonus_avg": org.bonus_avg,
-        "bonus_best": org.bonus_best
-    }
+    org_dict = org.snapshot()
     model_file = os.path.join(prefix_dir, f"net_{org.id}.pt") 
 
     net_dict = {
         "model": org.net.state_dict(),
         "optimizer": org.optimizer.state_dict(),
+        "lr_scheduler": org.lr_scheduler.state_dict()
     }
 
     torch.save(net_dict, model_file)
@@ -30,12 +21,22 @@ def create_org_dict(org, prefix_dir):
     return org_dict
 
 def serialize_stagnation(stagnation):
-    stag_dict = {} 
+    stag_dict = {
+        "metrics": {}
+    } 
+
+    # Save the current performance metrics of each species
     for species_id, metrics in stagnation.species_metrics.items():
-        stag_dict[species_id] = {
+        stag_dict["metrics"][species_id] = {
             "last_update": metrics.last_update,
-            "best_avg_fitness": metrics.best_avg_fitness
+            "best_metric": metrics.best_metric
         }
+    
+    # Save the history of the performance metrics of each species
+    stag_dict["stagnation_history"] = stagnation.stagnation_history
+
+    # Save the history of the time the best_metric threshold was reached
+    stag_dict["best_metric_history"] = stagnation.best_metric_history
     
     return stag_dict
 
@@ -64,14 +65,16 @@ def save_population(population, save_dir):
             "org_ids" : [org.id for org in species.orgs],
             "age": species.age,
             "best_avg_fitness": species.best_avg_fitness,
-            "best_max_fitness": species.best_max_fitness
+            "best_max_fitness": species.best_max_fitness,
+            "max_total_fitness": species.max_total_fitness,
+            "best_avg_diversity": species.best_avg_diversity,
         }
         
         species_list.append(species_dict)
 
     # Save the base organism
     base_org = create_org_dict(population.base_org, prefix_dir)
-    
+    serialize_stagnation
     stag_dict = serialize_stagnation(population.stagnation)
     # Aggregate everything into this population dictionary
     pop_dict = {
@@ -98,6 +101,9 @@ def _load_organism(args, org_dict, base_actor):
 
     org = Organism(args, net, org_dict["generation"], org_dict["id"])
     org.optimizer.load_state_dict(net_dict["optimizer"])
+    if "lr_scheduler" in net_dict:
+        org.lr_scheduler.load_state_dict(net_dict["lr_scheduler"])
+
     org.behavior = org_dict["behavior"]
     if "age" in org_dict:
         org.age = org_dict["age"]
@@ -116,15 +122,35 @@ def _load_organism(args, org_dict, base_actor):
         org._num_updates = org_dict["num_updates"]
         org._fitness_avg = org_dict["avg_fitness"]
     
+    if "parents" in org_dict:
+        org.parents = org_dict["parents"]
+    
     return org
 
 def load_stagnation(stag_dict, stagnation):
-    for species_id, metrics in stag_dict.items():
-        stagnation.species_metrics[species_id] = SpeciesMetrics(
-            metrics["last_update"],
-            metrics["best_avg_fitness"]
-        )
+    print(stag_dict.keys())
+    if "metrics" in stag_dict:
+        for species_id, metrics in stag_dict["metrics"].items():
+            stagnation.species_metrics[int(species_id)] = SpeciesMetrics(
+                metrics["last_update"],
+                metrics["best_metric"]
+            )
+    else:
+        for i in range(8):
+            stagnation.species_metrics[i] = SpeciesMetrics(
+                stag_dict[str(i)]["last_update"],
+                stag_dict[str(i)]["best_metric"]
+            )
+
+        
+    if "stagnation_history" in stag_dict:
+        for species_id, history in stag_dict["stagnation_history"].items():
+            stagnation.stagnation_history[int(species_id)] = stag_dict["stagnation_history"][species_id]
     
+    if "best_metric_history" in stag_dict:
+        for species_id, history in stag_dict["best_metric_history"].items():
+            stagnation.best_metric_history[int(species_id)] = stag_dict["best_metric_history"][species_id]
+
 
 def load_population(args, td3ga, base_actor):
     prefix_dir = os.path.join(args.save_dir, "nets")
@@ -148,7 +174,7 @@ def load_population(args, td3ga, base_actor):
     for org_dict in pop_dict["orgs"]:
         org = _load_organism(args, org_dict, base_actor)
         population.orgs.append(org)
-        org_index[org.id] = org
+        org_index[int(org.id)] = org
 
     # Load the species
     for species_dict in pop_dict["species_list"]:
@@ -158,10 +184,14 @@ def load_population(args, td3ga, base_actor):
             species.best_avg_fitness = species_dict["best_avg_fitness"] 
         if "best_max_fitness" in species_dict:
             species.best_max_fitness = species_dict["best_max_fitness"]
+        if "max_total_fitness" in species_dict:
+            species.max_total_fitness = species_dict["max_total_fitness"]
 
+        if "best_avg_diversity" in species_dict:
+            species.best_avg_diversity = species_dict["best_avg_diversity"]
         # Add the organisms to the species
         for org_id in species_dict["org_ids"]:
-            species.add(org_index[org_id])
+            species.add(org_index[int(org_id)])
 
     load_stagnation(pop_dict["stagnation"], population.stagnation)
 

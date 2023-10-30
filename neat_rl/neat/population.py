@@ -4,6 +4,8 @@ from neat_rl.neat.organism import Organism
 from neat_rl.neat.species import Species
 from neat_rl.neat.reproduction import GradientReproduction
 from neat_rl.neat.stagnation import Stagnation
+
+from torch.optim.lr_scheduler import MultiplicativeLR
 from torch.optim import Adam
 import copy
 
@@ -63,13 +65,19 @@ class GradientPopulation:
 
     def breed(self, cur_species):
         if random.random() <= self.args.pg_rate:
+            # Pick a random parent from the species
             parent_1 = random.choice(cur_species.orgs)
             parent_2 = parent_1
+
+            # Copy the parent network, optimizer, and LR scheduler
             child_net = parent_1.net.copy(transfer_weights=True)
             child_optimizer = Adam(child_net.parameters(), lr=self.args.org_lr)
             child_optimizer.load_state_dict(copy.deepcopy(parent_1.optimizer.state_dict()))
+            child_lr_scheduler = MultiplicativeLR(child_optimizer, lr_lambda=lambda e: 0.9)
+            child_lr_scheduler.load_state_dict(copy.deepcopy(parent_1.lr_scheduler.state_dict()))
 
-            self.td3ga.pg_update(child_net, child_optimizer, cur_species.species_id)
+            # Update the child
+            self.td3ga.pg_update(child_net, child_optimizer, child_lr_scheduler, cur_species.species_id)
         else:
             if len(cur_species.orgs) > 1:
                 parent_1, parent_2 = random.sample(cur_species.orgs, 2)
@@ -83,7 +91,13 @@ class GradientPopulation:
         # Create the new organism
         new_org = Organism(
             self.args, child_net, gen=max(parent_1.generation, parent_2.generation) + 1, id=self.cur_id)
+        
+        # Set the parents to record generation history
+        new_org.parents = parent_1.parents.copy()
+        new_org.add_parent(parent_1.id)
+
         new_org.optimizer = child_optimizer
+        new_org.lr_scheduler = child_lr_scheduler
 
         # Increment the current organism ID
         self.cur_id += 1
@@ -107,6 +121,12 @@ class GradientPopulation:
         num_spawn = species_len - num_live
         return num_spawn
 
+    def _reset_species(self, species):
+        self.stagnation.reset(species)
+        species.orgs = self.spawn(self.base_org, len(species.orgs))
+        species.age = 0
+        self.td3ga.replay_buffer.toggle_reset(species.species_id)
+
     def evolve(self):
         """Remove worst organisms and spawn organsism from breeding best organisms."""
         # Reset the organisms
@@ -114,13 +134,13 @@ class GradientPopulation:
 
         # Create next iteration of organisms
         for cur_species in self.species_list:
-            cur_species.update()
+            did_improve = cur_species.update()
+            # Check if the current is an expert
+            self.td3ga.replay_buffer.update_expert(cur_species.species_id, did_improve)
 
             if self.stagnation.update(cur_species):
                 # Indicates this species has stananted, so resetting the species
-                cur_species.orgs = self.spawn(self.base_org, len(cur_species.orgs))
-                cur_species.age = 0
-                self.stagnation.reset(cur_species)
+                self._reset_species(cur_species)
             else:
                 num_spawn = self.prune_species(cur_species)
 

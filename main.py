@@ -8,6 +8,8 @@ from neat_rl.environments.env_sac import EnvironmentSAC
 from neat_rl.environments.env_pop_diversity import EnvironmentGADiversity
 from neat_rl.environments.env_pop_diversity_org import EnvironmentGADiversityOrg
 from neat_rl.environments.env_pop_diversity_sac import EnvironmentGADiversitySAC
+from neat_rl.environments.subproc_env_wrapper import SubprocEnvWrapper
+from neat_rl.environments.subproc_env_wrapper_gpu import SubprocEnvWrapperGPU
 
 
 from neat_rl.helpers.saving import save_population
@@ -66,8 +68,12 @@ def main(args):
                 }
                 archive = {}
                 archive_species_ids = {}
+            
+            if not args.render:
+                env = SubprocEnvWrapperGPU(args, archive, archive_species_ids, kdt)#EnvironmentGADiversity(args, archive, archive_species_ids, kdt)
+            else:
+                env = EnvironmentGADiversity(args, archive, archive_species_ids, kdt)
 
-            env = EnvironmentGADiversity(args, archive, archive_species_ids, kdt)
             env.total_eval = train_dict["total_evals"]
 
             i = 0
@@ -145,8 +151,8 @@ def main(args):
                 
 
 if __name__ == "__main__":
-    #import torch
-    #torch.multiprocessing.set_start_method('spawn', force=True)
+    # import torch
+    # torch.multiprocessing.set_start_method('spawn')
     import argparse
     parser = argparse.ArgumentParser()
     parser = update_parser(parser)

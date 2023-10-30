@@ -25,7 +25,7 @@ class SpeciesTD3GA(SpeciesTD3):
         action = net(state).cpu().data.numpy().flatten()
         return action
 
-    def pg_update(self, net, optimizer, species_id):
+    def pg_update(self, net, optimizer, lr_scheduler, species_id):
         species_ids = torch.full((self.args.batch_size,), species_id, device=self.device)
         for _ in range(self.args.n_org_updates):
             state  = self.replay_buffer.sample_states(self.args.batch_size, species_id)
@@ -34,3 +34,6 @@ class SpeciesTD3GA(SpeciesTD3):
             actor_loss.backward()
             torch.nn.utils.clip_grad_norm_(net.parameters(), self.args.max_norm)
             optimizer.step()
+        
+        lr_scheduler.step()
+            # print("LR: ", optimizer.param_groups[0]["lr"])

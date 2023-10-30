@@ -40,7 +40,7 @@ def update_parser(parser):
     parser.add_argument("--policy_freq", type=int, default=2,
         help="How often to update the policy w.r.t. the critic.")
     parser.add_argument("--update_freq", type=int, default=8,
-        help="How often to update the policy and critic.")
+        help="How often to update the species networks.")
 
     parser.add_argument("--learning_starts", type=int, default=1000,
         help="Number of timesteps to elapse before training.")
@@ -82,8 +82,12 @@ def update_parser(parser):
         help="Population size.")
     parser.add_argument("--max_stagnation", type=int, default=32,
         help="Maximum amount of time a species is allowed to remain stagnant.")
-    parser.add_argument("--stagnation_metric", default="avg",
+    parser.add_argument("--stagnation_metric", default="max",
         help="Stagnation metric to use.")
+    parser.add_argument("--expert_capacity_pct", type=float, default=0.25,
+        help="Size of replay buffer reserved for the previous experts of the species.")
+
+
     parser.add_argument("--max_org_evals", type=int, default=1e5, 
         help="Total number of organism evaluations to run.")
     parser.add_argument("--survival_rate", type=float, default=0.5, 
