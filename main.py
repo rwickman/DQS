@@ -70,7 +70,10 @@ def main(args):
                 archive_species_ids = {}
             
             if not args.render:
-                env = SubprocEnvWrapperGPU(args, archive, archive_species_ids, kdt)#EnvironmentGADiversity(args, archive, archive_species_ids, kdt)
+                if args.use_cpu:
+                    env = SubprocEnvWrapper(args, archive, archive_species_ids, kdt)
+                else:
+                    env = SubprocEnvWrapperGPU(args, archive, archive_species_ids, kdt)
             else:
                 env = EnvironmentGADiversity(args, archive, archive_species_ids, kdt)
 
@@ -162,6 +165,8 @@ if __name__ == "__main__":
         help="Use normal TD3.")
     parser.add_argument("--use_sac", action="store_true",
         help="Use normal SAC.")
+    parser.add_argument("--use_cpu", action="store_true",
+        help="Use CPU to run the networks.")
     parser.add_argument("--use_td3_diversity", action="store_true",
         help="Use normal SAC.")
     parser.add_argument("--non_qd", action="store_true",

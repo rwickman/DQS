@@ -94,11 +94,10 @@ class SubprocEnvWrapper(EnvironmentGADiversity):
                         self._get_exp(exp_queue, should_sample)
                     
                     # Check if any of the environments are done running
-
-                    for i in range(len(results)):
-                        if results[i].ready():
- 
-                            result = results.pop(i)
+                    # Check if any of the environments are done running
+                    unfinished_results = []
+                    for result in results:
+                        if result.ready():
                             org_idx, total_reward, behavior = result.get()
                             total_fitness += total_reward
 
@@ -120,7 +119,11 @@ class SubprocEnvWrapper(EnvironmentGADiversity):
                             
                             if min_fitness is None or total_reward < min_fitness:
                                 min_fitness = total_reward
-                        break
+                        else:
+                            unfinished_results.append(result)
+                    
+                    results = unfinished_results
+
                 # Get the remaining experiences
                 while not exp_queue.empty():
                     self._get_exp(exp_queue, should_sample)
@@ -129,4 +132,5 @@ class SubprocEnvWrapper(EnvironmentGADiversity):
         fitness_range = max_fitness - min_fitness
         print("ENV RUN TIME: ", time.time() - start_time)
         self._population_to_device(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        self.total_eval += len(self.population.orgs)
         return max_fitness, avg_fitness, fitness_range, total_fitness
