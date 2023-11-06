@@ -4,7 +4,7 @@ import torch
 import random
 import time
 
-from torch.multiprocessing import Queue, Process, Pool, set_start_method, Manager
+from torch.multiprocessing import Queue, Process, Pool, set_start_method, Manager, get_context
 
 from neat_rl.environments.env_pop_diversity import EnvironmentGADiversity
 from neat_rl.helpers.util import add_to_archive
@@ -42,7 +42,6 @@ class SubprocEnvWrapper(EnvironmentGADiversity):
 
     def __init__(self, args, archive, archive_species_ids, kdt):
         super().__init__(args, archive, archive_species_ids, kdt)
-        set_start_method("fork")
 
 
     def _get_exp(self, exp_queue, should_sample):
@@ -54,7 +53,9 @@ class SubprocEnvWrapper(EnvironmentGADiversity):
         
         # Train the species models 
         if not should_sample and self.total_timesteps % self.args.update_freq == 0:
+            start_time = time.time()
             self.td3ga.train()
+            self.total_train_time += time.time() - start_time
 
     def _population_to_device(self, device):
         for org in self.population.orgs:
@@ -68,14 +69,15 @@ class SubprocEnvWrapper(EnvironmentGADiversity):
         min_fitness = None
         total_fitness = 0
         random.shuffle(self.population.orgs)
+        self.total_train_time = 0
 
         # Create the queue that will hold the list of experiences
 
-
+        ctx = get_context("spawn")
         # Create the pool of workers
-        with Manager() as manager:
+        with ctx.Manager() as manager:
             exp_queue = manager.Queue()
-            with Pool(n_cpus) as pool:
+            with ctx.Pool(n_cpus) as pool:
 
                 results = []
                 should_sample = self.td3ga.replay_buffer.size < self.args.learning_starts
@@ -130,6 +132,7 @@ class SubprocEnvWrapper(EnvironmentGADiversity):
 
         avg_fitness = total_fitness / len(self.population.orgs)
         fitness_range = max_fitness - min_fitness
+        print("TOTAL TRAIN TIME: ", self.total_train_time)
         print("ENV RUN TIME: ", time.time() - start_time)
         self._population_to_device(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         self.total_eval += len(self.population.orgs)

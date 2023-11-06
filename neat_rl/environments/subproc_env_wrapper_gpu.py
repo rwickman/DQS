@@ -41,7 +41,7 @@ class SubprocEnvWrapperGPU(EnvironmentGADiversity):
 
     def __init__(self, args, archive, archive_species_ids, kdt):
         super().__init__(args, archive, archive_species_ids, kdt)
-        set_start_method("fork")
+
 
 
 

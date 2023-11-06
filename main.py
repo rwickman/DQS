@@ -154,8 +154,8 @@ def main(args):
                 
 
 if __name__ == "__main__":
-    # import torch
-    # torch.multiprocessing.set_start_method('spawn')
+    import torch
+    torch.multiprocessing.set_start_method('spawn')
     import argparse
     parser = argparse.ArgumentParser()
     parser = update_parser(parser)
