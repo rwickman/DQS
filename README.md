@@ -40,6 +40,10 @@ To hyperparameter tune on the QDHopper environment:
 python3 main.py --hyperparameter_tune --env QDHopperBulletEnv-v0 --max_org_evals 10000 --use_state_disc
 ```
 
+```shell
+python3 main.py --env QDHalfCheetahBulletEnv-v0 --save_dir models_2/half_cheetah/max_stag_16_5 --max_stagnation 16 --n_org_updates 128 --org_lr 1e-2 --load
+```
+
 For other environments, replace the environment with the one you want to test on.
 
 All environments:
