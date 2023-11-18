@@ -40,9 +40,6 @@ class SubprocEnvWrapperGPU(EnvironmentGADiversity):
     def __init__(self, args, archive, archive_species_ids, kdt):
         super().__init__(args, archive, archive_species_ids, kdt)
 
-
-
-
     def _get_exp(self, exp_queue, should_sample):
         """Get an experience from an environment."""
         # Get an experience from one of the environments
@@ -69,8 +66,7 @@ class SubprocEnvWrapperGPU(EnvironmentGADiversity):
                 else:
                     action, _ = self.td3ga.sample_action_net(org.net, state)
                 conn.send(action)
-        
-        
+
         self.total_step_time += time.time() - start_time
 
     def _close_pipes(self, pipes):
