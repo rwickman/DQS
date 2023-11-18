@@ -11,6 +11,7 @@ from neat_rl.networks.species_critic import SpeciesCritic
 from neat_rl.networks.discriminator import Discriminator 
 
 from neat_rl.rl.species_replay_buffer import SpeciesReplayBuffer
+from neat_rl.helpers.util import get_device
 
 class SpeciesTD3:
     def __init__(self, args, state_dim, action_dim, max_action, behavior_dim):
@@ -25,7 +26,7 @@ class SpeciesTD3:
 
         self.args.policy_noise = args.policy_noise * max_action
         self.args.noise_clip = args.noise_clip * max_action
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = get_device()
         self.init_networks()
 
         self.critic_loss_fn = nn.MSELoss()
@@ -82,91 +83,87 @@ class SpeciesTD3:
         return log_softmax(self.discriminator(torch.FloatTensor(behavior).to(self.device)), dim=-1)[species_id].item() - math.log(1/self.args.num_species)
 
     def train(self):
-        for _ in range(self.args.replay_ratio):
-            self.total_iter += 1
-            state, action, next_state, reward, behavior, terminated, species_id = self.replay_buffer.sample(self.args.batch_size)
+        self.total_iter += 1
+        state, action, next_state, reward, behavior, terminated, species_id = self.replay_buffer.sample(self.args.batch_size)
 
-            with torch.no_grad():
-                # Select action according to policy and add clipped noise
-                noise = (
-                    torch.randn_like(action) * self.args.policy_noise
-                ).clamp(-self.args.noise_clip, self.args.noise_clip)
+        with torch.no_grad():
+            # Select action according to policy and add clipped noise
+            noise = (
+                torch.randn_like(action) * self.args.policy_noise
+            ).clamp(-self.args.noise_clip, self.args.noise_clip)
 
-                next_action = (
-                    self.actor_target(next_state, species_id) + noise
-                ).clamp(-self.max_action, self.max_action)
-
-                if self.args.use_behavior_disc:
-                    disc_logits = self.discriminator(behavior)
-                else:
-                    disc_logits = self.discriminator(next_state)
-                diversity_bonus = log_softmax(disc_logits, dim=-1).gather(-1, species_id.unsqueeze(1))  - math.log(1/self.args.num_species)
-                qd_reward = reward + self.args.disc_lam * diversity_bonus
-                    
-
-                # Compute the target Q value
-                target_Q1, target_Q2 = self.critic_target(next_state, next_action, species_id)
-                target_Q = torch.min(target_Q1, target_Q2)
-                
-                target_Q = qd_reward + terminated * self.args.gamma * target_Q
-
-            # Get current Q estimates
-            current_Q1, current_Q2 = self.critic(state, action, species_id)
-            
-            # Compute critic loss
-            critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
-
-            # Optimize the critic
-            self.critic_optimizer.zero_grad()
-            critic_loss.backward()
-            nn.utils.clip_grad_norm_(self.critic.parameters(), self.args.max_norm)
-            self.critic_optimizer.step()
+            next_action = (
+                self.actor_target(next_state, species_id) + noise
+            ).clamp(-self.max_action, self.max_action)
 
             if self.args.use_behavior_disc:
-                logits = self.discriminator(behavior)
+                disc_logits = self.discriminator(behavior)
             else:
-                logits = self.discriminator(state)
-
-            disc_loss = self.disc_loss_fn(logits, species_id)
+                disc_logits = self.discriminator(next_state)
+            diversity_bonus = log_softmax(disc_logits, dim=-1).gather(-1, species_id.unsqueeze(1))  - math.log(1/self.args.num_species)
+            qd_reward = reward + self.args.disc_lam * diversity_bonus
                 
-            self.discriminator_optimizer.zero_grad()
-            nn.utils.clip_grad_norm_(self.discriminator.parameters(), self.args.max_norm)
-            disc_loss.backward()
-            self.discriminator_optimizer.step()
+
+            # Compute the target Q value
+            target_Q1, target_Q2 = self.critic_target(next_state, next_action, species_id)
+            target_Q = torch.min(target_Q1, target_Q2)
             
-            # Delayed policy updates
-            if self.total_iter % self.args.policy_freq == 0:
-                actor_loss = -self.critic.Q1(state, self.actor(state, species_id), species_id).mean()
-                #actor_loss = self.critic_loss_fn(self.actor(state, species_id), action_org)
-                # Optimize the actor 
-                self.actor_optimizer.zero_grad()
-                actor_loss.backward()
-                nn.utils.clip_grad_norm_(self.actor.parameters(), self.args.max_norm)
-                self.actor_optimizer.step()
+            target_Q = qd_reward + terminated * self.args.gamma * target_Q
 
-                # Update the frozen target models
-                for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
-                    target_param.data.copy_(self.args.tau * param.data + (1 - self.args.tau) * target_param.data)
+        # Get current Q estimates
+        current_Q1, current_Q2 = self.critic(state, action, species_id)
+        
+        # Compute critic loss
+        critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
 
-                for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
-                    target_param.data.copy_(self.args.tau * param.data + (1 - self.args.tau) * target_param.data)
+        # Optimize the critic
+        self.critic_optimizer.zero_grad()
+        critic_loss.backward()
+        nn.utils.clip_grad_norm_(self.critic.parameters(), self.args.max_norm)
+        self.critic_optimizer.step()
 
-                if self.total_iter % 2048 == 0:
-                    print("TOTAL ITER: ", self.total_iter)
-                    print("behavior target_Q", current_Q1[:10].view(-1), target_Q[:10].view(-1))
+        if self.args.use_behavior_disc:
+            logits = self.discriminator(behavior)
+        else:
+            logits = self.discriminator(state)
 
-                    print("species_id", species_id[:10])
-                    print("reward", reward[:10].view(-1))
-                    print("actor_loss", actor_loss, "critic_loss", critic_loss, "disc_loss", disc_loss)
-                    print("behavior", behavior[:10])
-                    #print("skew_weights", skew_weights[:10], probs[:10], skew_weights.max(), probs.max(), skew_weights.sum(), probs.sum())
-                    print("AVG REWARD", reward.mean(), "AVG DIVERSITY", diversity_bonus.mean())
-                    print("diversity_bonus", diversity_bonus.view(-1)[:10], "\n")
-                
-            if self.args.reset_policy and self.total_iter % self.args.reset_policy_steps == 0:
-                print("\n \n RESTING POLICY \n \n")
-                self.init_networks()
-                
+        disc_loss = self.disc_loss_fn(logits, species_id)
+            
+        self.discriminator_optimizer.zero_grad()
+        nn.utils.clip_grad_norm_(self.discriminator.parameters(), self.args.max_norm)
+        disc_loss.backward()
+        self.discriminator_optimizer.step()
+        
+        # Delayed policy updates
+        if self.total_iter % self.args.policy_freq == 0:
+            actor_loss = -self.critic.Q1(state, self.actor(state, species_id), species_id).mean()
+            #actor_loss = self.critic_loss_fn(self.actor(state, species_id), action_org)
+            # Optimize the actor 
+            self.actor_optimizer.zero_grad()
+            actor_loss.backward()
+            nn.utils.clip_grad_norm_(self.actor.parameters(), self.args.max_norm)
+            self.actor_optimizer.step()
+
+            # Update the frozen target models
+            for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
+                target_param.data.copy_(self.args.tau * param.data + (1 - self.args.tau) * target_param.data)
+
+            for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
+                target_param.data.copy_(self.args.tau * param.data + (1 - self.args.tau) * target_param.data)
+
+            if self.total_iter % 2048 == 0:
+                print("TOTAL ITER: ", self.total_iter)
+                print("behavior target_Q", current_Q1[:10].view(-1), target_Q[:10].view(-1))
+
+                print("species_id", species_id[:10])
+                print("reward", reward[:10].view(-1))
+                print("actor_loss", actor_loss, "critic_loss", critic_loss, "disc_loss", disc_loss)
+                print("behavior", behavior[:10])
+                #print("skew_weights", skew_weights[:10], probs[:10], skew_weights.max(), probs.max(), skew_weights.sum(), probs.sum())
+                print("AVG REWARD", reward.mean(), "AVG DIVERSITY", diversity_bonus.mean())
+                print("diversity_bonus", diversity_bonus.view(-1)[:10], "\n")
+            
+
     
     def save(self):
         model_dict = {

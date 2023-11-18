@@ -49,14 +49,12 @@ def update_parser(parser):
     parser.add_argument("--save_dir", default="models/",
         help="Directory to save the modelsa and results.")
 
-    parser.add_argument("--org_lr", type=float, default=6e-4,
+    parser.add_argument("--org_lr", type=float, default=1e-2,
         help="Learning rate for an organism using policy updates.")
-    parser.add_argument("--n_org_updates", type=int, default=64,
+    parser.add_argument("--n_org_updates", type=int, default=128,
         help="Number of updates to perform for an organism.")
     parser.add_argument("--pg_rate", type=float, default=1.0,
         help="Probability of performing policy gradient updates instead of GA updates.")
-    parser.add_argument("--hyperparameter_tune", action="store_true",
-        help="Tune the hyperparameters.")
     parser.add_argument("--num_episodes", type=int, default=50,
         help="Number of episodes to run.")
 
@@ -70,8 +68,6 @@ def update_parser(parser):
         help="Don't train the critic with diversity bonus, only for selecting organsims in a species.")        
     parser.add_argument("--no_use_disc", action="store_true",
         help="Don't use the discriminator to increase diversity.")
-    parser.add_argument("--sac_alpha", type=float, default=0.2,
-        help="Alpha used for entropy in SAC.")
     parser.add_argument("--iso_sigma", type=float, default=0.005,
         help="ISO sigma for random noise.")
     parser.add_argument("--line_sigma", type=float, default=0.05,
@@ -80,7 +76,7 @@ def update_parser(parser):
         help="Number of species to create.")
     parser.add_argument("--pop_size", type=int, default=64,
         help="Population size.")
-    parser.add_argument("--max_stagnation", type=int, default=32,
+    parser.add_argument("--max_stagnation", type=int, default=16,
         help="Maximum amount of time a species is allowed to remain stagnant.")
     parser.add_argument("--stagnation_metric", default="max",
         help="Stagnation metric to use.")

@@ -1,11 +1,12 @@
 import numpy as np
 import torch
 import copy
+from neat_rl.helpers.util import get_device
 
 class GradientReproduction:
     def __init__(self, args):
         self.args = args
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = get_device()
 
     def reproduce(self, net_1, net_2):
         net_1_state_dict = net_1.state_dict()

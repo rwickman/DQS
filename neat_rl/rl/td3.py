@@ -3,10 +3,11 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
+
 from neat_rl.networks.actor import Actor
 from neat_rl.networks.critic import Critic
 from neat_rl.rl.replay_buffer import ReplayBuffer
-
+from neat_rl.helpers.util import get_device 
 
 class TD3:
     def __init__(self, args, state_dim, action_dim, max_action):
@@ -15,7 +16,7 @@ class TD3:
         self.action_dim = action_dim
         self.args.policy_noise = args.policy_noise * max_action
         self.args.noise_clip = args.noise_clip * max_action
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = get_device()
         
         self.actor = Actor(state_dim, action_dim, self.args.hidden_size, self.args.n_hidden, self.max_action).to(self.device)
         self.actor_target = copy.deepcopy(self.actor)

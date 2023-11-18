@@ -44,7 +44,6 @@ class Species:
         """Get the best organism from the species."""
         return sorted(self.orgs, key=lambda o: o.avg_fitness, reverse=True)[0]
     
-    
     def snapshot(self):
         """Get a snapshot of this species, excluding the networks themselves."""
         # Record the species level information

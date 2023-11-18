@@ -3,6 +3,8 @@ import numpy as np
 import torch
 import os
 
+from neat_rl.helpers.util import get_device
+
 class ReplayBuffer:
 	"""Replay buffer for a species that allocates some memory for expert experiences."""
 	def __init__(self, state_dim, action_dim, behavior_dim, expert_size, max_size=int(1e6)):
@@ -25,7 +27,7 @@ class ReplayBuffer:
 		self.behavior = np.zeros((max_size, behavior_dim))
 		self.not_done = np.zeros((max_size, 1))
 
-		self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+		self.device = get_device()
 
 	def add(self, state, action, next_state, reward, behavior, done):
 		if self.ptr == self.expert_end_ptr:
@@ -136,7 +138,7 @@ class SpeciesReplayBuffer:
 			ReplayBuffer(state_dim, action_dim, behavior_dim, expert_size, max_size=max_size//num_species)
 			for _ in range(num_species)
 		]
-		self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+		self.device = get_device()
 
 	def add(self, state, action, next_state, reward, species_id, behavior, done):
 		self._buffers[species_id].add(state, action, next_state, reward, behavior, done)

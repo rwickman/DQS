@@ -12,6 +12,7 @@ from neat_rl.rl.species_td3ga import SpeciesTD3GA
 from neat_rl.neat.population import GradientPopulation
 from neat_rl.helpers.saving import save_population, load_population
 from neat_rl.networks.actor import Actor
+from neat_rl.helpers.util import get_device
 
 def _worker(org_net, org_idx, species_id, exp_queue, env_name, should_sample):
     # org, org_idx, species_id, exp_queue, env_name, should_sample = args
@@ -63,7 +64,7 @@ class SubprocEnvWrapper(EnvironmentGADiversity):
             org.net.device = device
 
     def train(self):
-        n_cpus = os.cpu_count()
+        n_cpus = min(os.cpu_count(), len(self.population.orgs))
         start_time = time.time()
         max_fitness = None
         min_fitness = None
@@ -134,6 +135,6 @@ class SubprocEnvWrapper(EnvironmentGADiversity):
         fitness_range = max_fitness - min_fitness
         print("TOTAL TRAIN TIME: ", self.total_train_time)
         print("ENV RUN TIME: ", time.time() - start_time)
-        self._population_to_device(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        self._population_to_device(get_device())
         self.total_eval += len(self.population.orgs)
         return max_fitness, avg_fitness, fitness_range, total_fitness

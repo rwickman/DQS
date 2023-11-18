@@ -83,7 +83,7 @@ def print_stats(save_dir, env):
     print("COVERAGE LAST 10:", train_dict["coverage"][-10:])
     print("total_fitness_archive", train_dict["total_fitness_archive"][-5:])
     print("MAX FITNESS:", train_dict["max_fitness"][-1])
-
+    print(train_dict.keys())
 def plot_species(save_dir):
     pop_file = os.path.join(save_dir, "pop.json")    
     with open(pop_file) as f:

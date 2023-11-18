@@ -13,8 +13,6 @@ from neat_rl.neat.population import GradientPopulation
 from neat_rl.helpers.saving import save_population, load_population
 from neat_rl.networks.actor import Actor
 
-# TODO: Make it so this runs on the GPU instead
-
 def _worker(conn, org_idx, species_id, exp_queue, env_name, should_sample):
     # org, org_idx, species_id, exp_queue, env_name, should_sample = args
     env = gym.make(env_name)
@@ -83,7 +81,7 @@ class SubprocEnvWrapperGPU(EnvironmentGADiversity):
 
     def train(self):
         pipes = []
-        n_cpus = os.cpu_count()
+        n_cpus = min(os.cpu_count(), len(self.population.orgs))
         start_time = time.time()
         max_fitness = None
         min_fitness = None

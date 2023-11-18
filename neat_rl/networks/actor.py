@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from neat_rl.networks.util import weights_init_
-
+from neat_rl.helpers.util import get_device
 import random
 import numpy as np
 import copy
@@ -16,7 +16,7 @@ class Actor(nn.Module):
         self.hidden_size = hidden_size
         self.n_hidden = n_hidden
         self.max_action = max_action 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = get_device()
 
         self.in_layer = nn.Linear(state_dim, hidden_size)
 

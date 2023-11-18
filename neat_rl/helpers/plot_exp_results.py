@@ -8,6 +8,7 @@ import numpy as np
 from matplotlib.ticker import ScalarFormatter
 import matplotlib as mpl
 from matplotlib import rc,rcParams
+from matplotlib.ticker import MaxNLocator
 
 class CustomFormatter(ScalarFormatter):
     def _set_format(self):
@@ -60,6 +61,7 @@ def get_my_stats(my_results):
     fitness_vals = [[] for _ in range(len(eval_nums))]
     qd_vals = [[] for _ in range(len(eval_nums))]
     coverage_vals = [[] for _ in range(len(eval_nums))]
+    min_fitness = 1e9
 
     for d in my_results_dirs:
         # Open up the train JSON file 
@@ -91,11 +93,12 @@ def get_my_stats(my_results):
 def get_their_stats(root_dir, eval_num):
     """Get the metrics from other methods."""
     results_dirs = os.listdir(root_dir)
-
+    min_fitness = 1e-9
     fitness_vals = [[] for _ in range(eval_num)]
     qd_vals = [[] for _ in range(eval_num)]
     min_fitness = [[] for _ in range(eval_num)]
     coverage_vals = [[] for _ in range(eval_num)]
+    
 
     for path_dir in results_dirs[:10]:
         if ".DS_Store" in path_dir:
@@ -110,10 +113,10 @@ def get_their_stats(root_dir, eval_num):
         for i in range(eval_num):
             fitness_vals[i].append(df["max_fitness"][i])
             qd_vals[i].append(df["sum_fitness"][i])
-            min_fitness[i].append(df["min_fitness"][i])
             coverage_vals[i].append(df["coverage"][i])
+            min_fitness = min(df["min_fitness"][i], min_fitness)
 
-    return fitness_vals, qd_vals, coverage_vals
+    return fitness_vals, qd_vals, coverage_vals, min_fitness
 
 
 def shade_bounds(mean_vals, std_vals, ax, x_vals):
@@ -172,10 +175,12 @@ if __name__ == "__main__":
         max_fitness_list = []
         qd_score_list = []
         coverage_list = []
+        min_fitness = 0
 
         # Plot DQS results
         my_results = f"models/{env.lower()}"
         fitness, qd_scores, coverage = get_my_stats(my_results)
+        
         max_fitness_list.append(fitness)
         qd_score_list.append(qd_scores)
         coverage_list.append(coverage)
@@ -185,12 +190,20 @@ if __name__ == "__main__":
             method = d.split("_")[-1]
                 
             d = os.path.join(d, f"results_{env}_{method}")
-            max_fitness, qd_score, coverage = get_their_stats(d, 5)
+            max_fitness, qd_score, coverage, their_min_fitness = get_their_stats(d, 5)
+            min_fitness = min(min_fitness, their_min_fitness)
             
             max_fitness_list.append(max_fitness)
             qd_score_list.append(qd_score)
             coverage_list.append(coverage)
 
+
+        # Adjust the QD scores
+        # print(qd_score_list)
+        # qd_score_list = np.array(qd_score_list)
+        # coverage_list = np.array(coverage_list)
+        # print(min_fitness)
+        # qd_score_list = qd_score_list - coverage_list * min_fitness
 
         cur_line_plots = plot(max_fitness_list, qd_score_list, coverage_list, axs, i)
         
@@ -215,6 +228,10 @@ if __name__ == "__main__":
         axs[1][i].set_xticks(x_ticks)
         axs[2][i].set_xticks(x_ticks)
         
+        
+ 
+        # print(axs[0][i].yticks())
+
         axs[0][i].set_ylabel(None)
         axs[1][i].set_ylabel(None)
         axs[2][i].set_ylabel(None)
@@ -222,7 +239,8 @@ if __name__ == "__main__":
         axs[0][i].yaxis.set_major_formatter(CustomFormatter(useMathText=True))
         axs[1][i].yaxis.set_major_formatter(CustomFormatter(useMathText=True))
         axs[2][i].yaxis.set_major_formatter(CustomFormatter(useMathText=True))
-
+        #axs[0][i].yaxis.set_major_locator(MaxNLocator(integer=True))
+        
         axs[2][i].xaxis.set_major_formatter(CustomFormatter(useMathText=True))
         axs[2][i].ticklabel_format(axis='y', style='sci', scilimits=(2,4))
 
@@ -234,6 +252,6 @@ if __name__ == "__main__":
     lgd = fig.legend(handles=line_plots, labels=labels, loc="lower center", ncol=len(labels), fontsize=18, frameon=False)
     
     plt.tight_layout()
-    fig.subplots_adjust(bottom=0.2)
+    fig.subplots_adjust(bottom=0.15)
 
     plt.savefig("Figures/exp_results.pdf", dpi=500, transparent=False)

@@ -76,4 +76,11 @@ def load_archive(save_file):
     return archive, archive_species_ids
 
 
-     
+def get_device():
+    try:
+        import torch_xla.core.xla_model as xm
+        device = xm.xla_device()
+    except:
+        import torch
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return device
