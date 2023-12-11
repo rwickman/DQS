@@ -4,7 +4,7 @@ import torch
 import random
 import time
 
-from torch.multiprocessing import Queue, Process, Pool, set_start_method, Manager, get_context
+from torch.multiprocessing import Queue, Process, Pool, Manager, get_context
 
 from neat_rl.environments.env_pop_diversity import EnvironmentGADiversity
 from neat_rl.helpers.util import add_to_archive

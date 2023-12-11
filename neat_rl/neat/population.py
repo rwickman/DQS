@@ -127,6 +127,15 @@ class GradientPopulation:
         species.age = 0
         self.td3ga.replay_buffer.toggle_reset(species.species_id)
 
+    def _breed_new_orgs(self, cur_species, num_spawn):
+        # Save new orgs in list to prevent breeding with new_org
+        new_orgs = []
+        for _ in range(num_spawn):
+            new_orgs.append(self.breed(cur_species))
+        
+        cur_species.orgs.extend(new_orgs)
+
+
     def evolve(self):
         """Remove worst organisms and spawn organsism from breeding best organisms."""
         # Reset the organisms
@@ -134,12 +143,14 @@ class GradientPopulation:
 
         # Create next iteration of organisms
         for cur_species in self.species_list:
+            # Check if the current species did improve from previous iterations
             did_improve = cur_species.update()
-            # Check if the current is an expert
+
+            # Update if the current species is an expert (i.e., the best so far w.r.t. max fitness)
             self.td3ga.replay_buffer.update_expert(cur_species.species_id, did_improve)
 
             if self.stagnation.update(cur_species):
-                # Indicates this species has stananted, so resetting the species
+                # Indicates this species has stagnated, so resetting the species
                 self._reset_species(cur_species)
             else:
                 num_spawn = self.prune_species(cur_species)
@@ -147,12 +158,7 @@ class GradientPopulation:
                 for org in cur_species.orgs:
                     org.age += 1
                 
-                # Save new orgs in list to prevent breeding with new_org
-                new_orgs = []
-                for _ in range(num_spawn):
-                    new_orgs.append(self.breed(cur_species))
-                
-                cur_species.orgs.extend(new_orgs)
+                self._breed_new_orgs(cur_species, num_spawn)
 
             # Add species' organsims to list of all organisms
             self.orgs.extend(cur_species.orgs)

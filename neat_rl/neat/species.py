@@ -7,11 +7,16 @@ class Species:
         self.species_id = id
         self.age = 0
         self.last_updated = 0
+
+        # Max over the fitness averaged over all organisms 
         self.best_avg_fitness = -1e5
+
+        # The max average fitness over all organisms 
         self.best_max_fitness = -1e5
+        
         self.best_avg_diversity = -1e5
 
-        # Max fitness across all organisms
+        # Max best fitness across all organisms
         self.max_total_fitness = -1e5
     
     def add(self, org):
@@ -26,7 +31,7 @@ class Species:
         self.best_avg_fitness = max(cur_avg_fitness, self.best_avg_fitness)
         cur_best_max_fitness = self.best_max_fitness
         self.best_max_fitness = max([o.avg_fitness for o in self.orgs] + [self.best_max_fitness])
-        self.max_total_fitness = max([o.best_fitness for o in self.orgs] + [self.max_total_fitness] )
+        self.max_total_fitness = max([o.best_fitness for o in self.orgs] + [self.max_total_fitness])
         self.best_avg_diversity = max([o.bonus_avg for o in self.orgs] + [self.best_avg_diversity])
 
         return self.best_max_fitness > cur_best_max_fitness

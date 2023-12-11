@@ -55,19 +55,28 @@ def print_stats(save_dir, env):
         else:
             avg_behavior[species_id] += np.array(org_dict["behavior"])  
             species_sizes[species_id] += 1
-    
-    for k, v in species_to_org_dict.items():
+
+    num_resets_and_fitness = []
+    for k, v in species_to_org_dict.items():        
         print(f"SPECIES {k}")
         if "stagnation" in pop_dict:
             if "metrics" in pop_dict["stagnation"]:
                 print(pop_dict["stagnation"]["metrics"][str(k)])
             else:
                 print(pop_dict["stagnation"][str(k)])
-        print(list(filter(lambda s: s["id"] == k, pop_dict["species_list"]))[0])
+            num_resets = len(pop_dict['stagnation']['stagnation_history'][str(k)])
+            cur_species_snapshot = list(filter(lambda s: s["id"] == k, pop_dict["species_list"]))[0]
+            max_fitness = cur_species_snapshot["max_total_fitness"]
+            num_resets_and_fitness.append((num_resets, max_fitness, k))
+
+            print(f"Number of resets {num_resets}")
+
+        print(cur_species_snapshot)
         for org_dict in v:
-            print("AGE", org_dict["age"], "fitness", org_dict["avg_fitness"])
+            print("AGE", org_dict["age"], "GENERATION", org_dict["generation"], "fitness", org_dict["avg_fitness"])
         
         print("\n")
+    print(sorted(num_resets_and_fitness, key=lambda x: x[1]))
 
     # Average out the behavior of each species
     for k in range(len(avg_behavior)):
@@ -84,6 +93,7 @@ def print_stats(save_dir, env):
     print("total_fitness_archive", train_dict["total_fitness_archive"][-5:])
     print("MAX FITNESS:", train_dict["max_fitness"][-1])
     print(train_dict.keys())
+
 def plot_species(save_dir):
     pop_file = os.path.join(save_dir, "pop.json")    
     with open(pop_file) as f:
@@ -109,7 +119,7 @@ def print_archive(save_dir, env):
     args_file = os.path.join(save_dir, "args.json")    
     with open(args_file) as f:
         args = json.load(f)
-    
+
     archive_file = os.path.join(save_dir, f"archive_{env}.json")
     if not os.path.exists(archive_file):
         archive_file = os.path.join(save_dir, "archive.json")
@@ -124,7 +134,7 @@ def print_archive(save_dir, env):
     archive_vals = np.array(list(archive.values()))
     if min_fit < 0:
         archive_vals = archive_vals - min_fit
-    
+
     print(f"ADJUSTED QD-Score: {archive_vals.sum()}")
     print(min_fit, max_fit)
     norm = mpl.colors.Normalize(vmin=min_fit, vmax=max_fit)

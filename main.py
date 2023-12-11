@@ -142,8 +142,11 @@ if __name__ == "__main__":
         help="Use normal TD3.")
     parser.add_argument("--use_cpu", action="store_true",
         help="Use CPU to run the networks.")
+    parser.add_argument("--use_tpu", action="store_true",
+        help="Use TPU to train the networks.")
     parser.add_argument("--no_parallel", action="store_true",
         help="Don't run the environments in parallel.")
     parser.add_argument("--max_episode_steps", type=int, default=1000,
         help="Max episode steps.")
+    
     main(parser.parse_args())

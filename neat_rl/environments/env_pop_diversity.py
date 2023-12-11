@@ -9,6 +9,8 @@ import math
 from neat_rl.helpers.util import add_to_archive
 from neat_rl.rl.species_td3ga import SpeciesTD3GA
 from neat_rl.neat.population import GradientPopulation
+from neat_rl.neat.population_parallel import GradientPopulationParallel
+
 from neat_rl.helpers.saving import save_population, load_population
 from neat_rl.networks.actor import Actor
 
@@ -46,7 +48,11 @@ class EnvironmentGADiversity:
             self.td3ga.load()
             self.population = load_population(self.args, self.td3ga, base_actor)
         else:
-            self.population = GradientPopulation(self.args, self.td3ga)
+            if self.args.use_tpu:
+                self.population = GradientPopulationParallel(self.args, self.td3ga)
+            else:
+                self.population = GradientPopulation(self.args, self.td3ga)
+
             self.population.setup(base_actor)
 
     def run(self, org, evaluate=False):        

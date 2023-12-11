@@ -2,6 +2,7 @@ import json, os
 import torch
 
 from neat_rl.neat.population import GradientPopulation
+from neat_rl.neat.population_parallel import GradientPopulationParallel
 from neat_rl.neat.organism import Organism
 from neat_rl.neat.stagnation import SpeciesMetrics
 
@@ -74,8 +75,10 @@ def save_population(population, save_dir):
 
     # Save the base organism
     base_org = create_org_dict(population.base_org, prefix_dir)
-    serialize_stagnation
+    
+    # Save the stagnation status and history
     stag_dict = serialize_stagnation(population.stagnation)
+    
     # Aggregate everything into this population dictionary
     pop_dict = {
         "orgs": orgs,
@@ -128,7 +131,6 @@ def _load_organism(args, org_dict, base_actor):
     return org
 
 def load_stagnation(stag_dict, stagnation):
-    print(stag_dict.keys())
     if "metrics" in stag_dict:
         for species_id, metrics in stag_dict["metrics"].items():
             stagnation.species_metrics[int(species_id)] = SpeciesMetrics(
@@ -160,7 +162,11 @@ def load_population(args, td3ga, base_actor):
     with open(save_file) as f:
         pop_dict = json.load(f)
     
-    population = GradientPopulation(args, td3ga)
+    if args.use_tpu:
+        population = GradientPopulationParallel(args, td3ga)        
+    else:
+        population = GradientPopulation(args, td3ga)
+
     population.cur_id = pop_dict["cur_id"]
     population.generation = pop_dict["generation"]
     population.base_org = _load_organism(args, pop_dict["base_org"], base_actor)
