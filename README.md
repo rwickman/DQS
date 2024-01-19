@@ -6,7 +6,7 @@ To install this package run:
 ```shell
 pip3 install git+https://github.com/ollenilsson19/QDgym.git#egg=QDgym --no-deps
 pip3 install -r requirements.txt
-pip install -e .
+pip3 install -e .
 ```
 
 ## Training the models
