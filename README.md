@@ -1,11 +1,11 @@
-# NEAT_RL
+# DQS
 
-Codebase for the [paper](https://arxiv.org/pdf/2304.07425.pdf): Efficient Quality-Diversity Optimization through Diverse Quality Species
 
 ## Setup
 To install this package run:
 ```shell
 pip3 install -e .
+pip3 install -r requirements.txt
 ```
 You will also need to install QDGym:
 ```shell
@@ -13,35 +13,25 @@ pip3 install git+https://github.com/ollenilsson19/QDgym.git#egg=QDgym
 ```
 
 ## Training the models
-To train the model on the QDHopper environment with a population size of 64 with 8 species, survival rate of 0.5, and discriminator lambda of 0.05:
+To train the model on the QDHopper environment with a population size of 64 with 8 species:
 ```shell
-python3 main.py --env QDHopperBulletEnv-v0 --pop_size 64 --num_species 8 --disc_lam 0.05 --survival_rate 0.5 --use_state_disc --save_dir <path/to/save_dir>
+python3 main.py --env QDHopperBulletEnv-v0 --pop_size 64 --num_species 8 --save_dir <path/to/save_dir>
 ```
 
 To load the model to continue training:
 ```shell
-python3 main.py --env QDHopperBulletEnv-v0 --pop_size 64 --num_species 8 --disc_lam 0.05 --survival_rate 0.5 --use_state_disc --save_dir <path/to/save_dir> --load
+python3 main.py --env QDHopperBulletEnv-v0 --pop_size 64 --num_species 8 --save_dir <path/to/save_dir> --load
 ```
 
 
 If you want to see population interacting with environment, without training (i.e., render):
 ```shell
-python3 main.py --env QDHopperBulletEnv-v0 --pop_size 64 --num_species 8 --disc_lam 0.05 --survival_rate 0.5 --use_state_disc --save_dir <path/to/save_dir> --load --render
+python3 main.py --env QDHopperBulletEnv-v0 --pop_size 64 --num_species 8 --save_dir <path/to/save_dir> --load --render
 ```
 
 To track the current training results for a model:
 ```shell
 python3 neat_rl/helpers/plot_results.py --save_dir <path/to/model> --env <env_name>
-```
-
-## Hyperparmeter tunning
-To hyperparameter tune on the QDHopper environment: 
-```shell
-python3 main.py --hyperparameter_tune --env QDHopperBulletEnv-v0 --max_org_evals 10000 --use_state_disc
-```
-
-```shell
-python3 main.py --env QDHalfCheetahBulletEnv-v0 --save_dir models_2/half_cheetah/max_stag_16_5 --max_stagnation 16 --n_org_updates 128 --org_lr 1e-2 --load
 ```
 
 For other environments, replace the environment with the one you want to test on.
@@ -54,7 +44,7 @@ All environments:
 
 ----
 
-## Hyperpameters used 
+## Hyperpameters used in Paper
 <p align="center">
 
 | Hyperparameter                               | Value       |
@@ -63,7 +53,9 @@ All environments:
 | Number of Species ($m$)                      | 8           |
 | Diversity Reward Scale ($\lambda$)           | 0.05        |
 | Species Elites Value ($K$)                   | 4           |
-| Policy Update Steps (n_grad)                 | 64          |
+| Maximum Stagnation (max_stag)                   | 16           |
+| Expert Buffer Percentage (expert_pct)                   | 0.25           |
+| Policy Update Steps (n_grad)                 | 128          |
 | Critic Update Frequency (critic_update_freq)     | 8           |
 | Policy Hidden Size                           | 128         |
 | Species Actor Hidden Size                    | 256         |
